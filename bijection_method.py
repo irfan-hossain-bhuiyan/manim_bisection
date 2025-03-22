@@ -12,7 +12,7 @@ from scipy.interpolate import CubicSpline
 import dialogue as dia
 import extra
 import func
-from extra import ExtraScene, PDot, moveZoomToFit
+from extra import ExtraScene, PDot, moveScaleToFit
 axis_config={"include_ticks":True,"numbers_with_elongated_ticks":[1,3],}
 background_line_style={"stroke_opacity":0}
 textColor={'f':YELLOW,'x':RED,'y':GREEN,'a':GREY,'b':GREY_BROWN}
@@ -207,7 +207,7 @@ class RootMiddle(ExtraScene,MovingCameraScene):
 #                      rootTip.group.animate.scale(0.3),
                     )
             zoomTo=Group(axDot,bxDot)
-            scaleOp=extra.moveZoomToFit(zoomTo,self.get_screenRectangle(),1)
+            scaleOp=extra.moveScaleToFit(zoomTo,self.getScreenRectangle(),1)
             self.play(scaleOp.animate(graph))
             self.wait(3)
         with self.voiceover(dia.ERROR_LESS) as trac:

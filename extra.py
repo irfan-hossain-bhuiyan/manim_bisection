@@ -51,7 +51,7 @@ def point_to_ratio(rect: Mobject, point:Point2D) -> Point2D:
     # Return the ratio, preserving the z-coordinate.
     return ratio
 def ratio_to_point(rect:Mobject,ratio:Point2D)->Point2D:
-    space=np.array([rect.height,rect.width])
+    space=np.array([rect.width,rect.height,0])
     return rect.get_corner(DL)+space*ratio
     
 def get_mobject_key(mobject: Mobject,rounding:int=3) -> int:
@@ -90,28 +90,24 @@ class ExtraScene(mm.Scene):
             if remainingDuration>0:
                 self.wait(remainingDuration)
             self.remove(txtObject)
-    def get_screenRectangle(self):
+    def getScreenRectangle(self,buff:float=0):
         if not hasattr(self.camera,"frame_height") or not hasattr(self.camera,"frame_width"):
             raise ValueError
-        return Rectangle(height=getattr(self.camera,"frame_height"),width=getattr(self.camera,"frame_width"))
-    def cameraZoomToFit(self,obj:Mobject,buff:float=0.0,fixedX=False,fixedY=False,pivot:None|Point2D=None):
-        screenRect=self.get_screenRectangle()
-        ratio=np.ones_like(2)*0.5 if pivot is None else point_to_ratio(obj,pivot)
+        return Rectangle(height=getattr(self.camera,"frame_height")+buff,
+                         width=getattr(self.camera,"frame_width")+buff)
+    def cameraZoomToFit(self,obj:Mobject,buff:float=0.0,fixedX=False,
+                        fixedY=False,pivot:None|Point3D=None):
         objRect=SurroundingRectangle(obj,buff=0)
-        d=Dot(objRect.get_center() if pivot is None else pivot)
-        prG=VGroup(objRect,d)
-        mask=np.ones(3)
-        if fixedX:
-            mask[0]=0
-        if fixedY:
-            mask[1]=0
-        prG.move_to(ORIGIN,mask)
-        self.add(prG)
-        self.wait()
-        toRect=max_rect_inside(screenRect,d.get_center(),ratio)
+        objPivot=objRect.get_center() if pivot is None else pivot
+        objPivotRatio=point_to_ratio(objRect,objPivot)
+        screenRect=self.getScreenRectangle()
+        outerPoint=ratio_to_point(screenRect,objPivotRatio)
+        movedPivot=objPivot.copy()
+        if not fixedX:movedPivot[0]=outerPoint[0]
+        if not fixedY:movedPivot[1]=outerPoint[1]
+        toRect=max_rect_inside(screenRect,movedPivot,objPivotRatio,)
         self.add(toRect)
-        self.wait()
-        return moveZoomToFit(objRect,toRect)
+        return moveScaleToFit(obj,toRect)
 
 
 
@@ -419,7 +415,7 @@ class MoveRotSca:
         return obj.animate.scale(self.scale,about_point=self.pivot).rotate(self.rotate,about_point=self.pivot).shift(self.move)
 
     
-def moveZoomToFit(obj:Mobject,toObj:Mobject,buff:float=0.0,):
+def moveScaleToFit(obj:Mobject,toObj:Mobject,buff:float=0.0,):
     """
         Gives the move and scale operation to fit to the object,
         The operation should be done from center
